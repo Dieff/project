@@ -2,3 +2,9 @@ books
 .Rhistory
 .vscode
 notes.Rmd
+parser/bin
+parser/include
+parser/lib
+parser/pyvenv.cfg
+parser/lib64
+.Rproj.user
