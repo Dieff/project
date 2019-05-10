@@ -1,0 +1,187 @@
+Predicting the Authorship of Poetry Snippets
+========================================================
+author: Nick Dieffenbacher-Krall
+date: April 29, 2019
+autosize: true
+
+```{r setup, echo=FALSE}
+source("./setup.R")
+source("./models.R")
+library(tm)
+```
+
+
+Project Goals
+========================================================
+
+- Determine the author of a poem using only data from that poem
+- A classification problem
+- Test data includes only the text of the poem
+
+Applications
+========================================================
+
+- Determining authorship
+- Classifying unknown works
+- Comparing an author's canon
+
+****
+
+![a](images/beowulf.png)
+
+Obtaining Data
+========================================================
+- Poems were sourced from Project Gutenberg
+- `r nrow(poems)` peoms from 7 19th century poets
+- Parsed from books via Python script
+
+<small>
+```{r, echo=FALSE}
+head(poems[1:2, c("Book", "Author", "Poem")], n=1)
+```
+</small>
+
+***
+
+```{r, echo=FALSE, fig.width=14, fig.height=12, fig.show='hold', fig.align='center'}
+poems.freq <- table(poems$Author)
+barplot(poems.freq, las=2)
+```
+
+Creating Variables
+========================================================
+- In order to do any classification, we need to create 
+variables from the poem text
+- Some easy initial variables are
+    * Words per line
+    * Lines per stanza
+- Not yet very useful
+
+
+***
+
+```{r, echo=FALSE, fig.width=12, fig.height=12, fig.show='hold', fig.align='center', out.width="150%",out.height="150%"}
+library(yarrr)
+pirateplot(formula = LineWords ~ Author, data = poems,
+           main = "Words per line for different authors", #Plot title
+           pal = "google", #Color scheme
+           point.o = .2, #Points
+           avg.line.o = 1, #Turn on the Average/Mean line
+           theme = 0, #Theme
+           point.pch = 16, #Point `pch` type
+           point.cex = 1, #Point size
+           jitter.val = .1, #Turn on jitter to see the songs better
+           cex.lab = .9, cex.names = .7) #Axis label size
+```
+
+
+Natural Language Processing
+========================================================
+<small>
+"Much madness is divinest sense  
+To a discerning eye;   
+Much sense the starkest madness.   
+'T is the majority    
+In this, as all, prevails.   
+Assent, and you are sane;   
+Demur, -- you're straightway dangerous,   
+And handled with a chain."   
+\- Emily Dickinson
+</small>
+<br />
+<br />
+- Analysis performed by word
+- Data is cleaned to make analysis easier
+
+***
+<small>
+"much madness divinest sense discerning eye much sense starkest madness t majority prevails assent sane demur youre straightway dangerous handled chain"
+</small>
+<br />
+<br /><br /><br />
+
+- Whitespace removed
+- Stop words removed
+- Punctuation removed
+- Experimenting with stemming words
+
+Wordclouds
+========================================================
+
+We can visualize the differences in word use between poet
+with a word cloud.
+
+<small> Emily Dickinson  </small>
+
+
+```{r, echo=FALSE}
+plot_cloud(doc.dickinson)
+```
+
+***
+
+<small> William Blake </small>
+
+
+```{r, echo=FALSE}
+plot_cloud(doc.blake)
+```
+
+
+Sentiment Analysis
+========================================================
+- A common way of creating data from natural langauge
+- Using the AFINN sentiment lexicon
+
+```{r, echo=FALSE}
+hist(poems$sentiment, xlab="Positivity Rating", main="Distribution of poem sentiment ratings")
+```
+
+Comparision of Sentiments
+========================================================
+
+```{r, echo=FALSE, fig.width=12, fig.height=10, fig.show='hold', fig.align='center'}
+pirateplot(formula = sentiment ~ Author, data = poems,
+           main = "Average \"sentiment\" of different poems", #Plot title
+           pal = "google", #Color scheme
+           point.o = .2, #Points
+           avg.line.o = 1, #Turn on the Average/Mean line
+           theme = 0, #Theme
+           point.pch = 16, #Point `pch` type
+           point.cex = 1, #Point size
+           jitter.val = .1, #Turn on jitter to see Authors better
+           cex.lab = .9, cex.names = .7) #Axis label size
+```
+
+Can we make predictions?
+========================================================
+- We may have enough variables to make successful predictions
+- Use test and train sets to evaluate models
+
+***
+
+```{r, echo=FALSE, fig.width=12, fig.height=12, fig.show='hold', fig.align='center'}
+ggplot(poems, aes(x = sentiment, y= LineWords)) + geom_point(aes(color = factor(poems$Author)))
+```
+
+Using SVM to classify author
+========================================================
+- Using a linear kernel, two dimensions
+    * Words per line
+    * Sentiment
+- Cost parameter evaluated by 5 fold CV
+- The model gives a successful classification rate of `r mean(test$correct)` on the test data.
+
+***
+
+```{r, echo=FALSE, fig.width=12, fig.height=12, fig.show='hold', fig.align='center'}
+plot(svmfit, train[, c("sentiment", "LineWords", "Author")])
+```
+
+
+Further work
+========================================================
+- More complex sentiment analysis
+- Discrete variables based on word usage
+- Create model using `xgboost`, and others
+- Latent Dirichlet Allocation (the other LDA)
